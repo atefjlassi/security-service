@@ -1,0 +1,74 @@
+PART 1: INTRODUCTION AND AUTHENTICATION
+---------------------------------------
+en mode statful: la session à un timeout pendent lequel si l'utilisateur n'envoie pas une requette la session sera détruite.
+		 cad le serveur doit se rappeler les sessions de tout les utilisateur (a lui de les gérer en mémoire)
+		 l'id de la session sera sauvegarder dans les cookies de navigateur.
+
+en mode statless: le serveur n'est pas chargé de gérer les utilisateurs (en mémoire).
+		  on va pas générer une session coté serveur, mais on va générer un TOKEN (ce token contient plein d'informations = username/expiration date etc.. , avec une SIGNATURE)
+	(signature pour lui faire confiance).
+	le JWT sera sauvegarder en locale storage, chaque requette envoyer au serveur avec le token, le serveur vérifier la signature.
+	la signature garantit que si le token est modifier quelque part on peut le savoir, si quelque chose change = la signature change.
+####
+
+CSRF: Cross Site Request Forgery (une failles de sécurité), MODE STATFUL
+Le JWT: un standard RFC.
+	une solution Compacte & Autonome.
+	1- compacte: de petite taille (peuvent etre envoyer dans le header / url par eg)
+	2- autonome: contient tout les information de l'utilisateur. (pas besoin de consulter la BD / ou d'aller au serveur chaque fois pour vérifier l'identitier du client authentifier).
+
+- le JWT est FIABLE parcequ'il est SIGNE numériquement.
+- il se compose de trois parties, séparés par "."
+	Header.payload.singnature
+
+
+Header: objet json contient deux information "alg" et "typ".
+	algorithmes ("alg") : HMAC, RSA (a revoire les clés asymtrique et symetrique : cryptographie)
+	type ("typ"): toujour JWT
+	NB: pour qu'on puisse envoyer les objets json en url il faut l'encodé: Encodage Base 64 URL.
+  	"encoder" ca veut pas dire "crypter".
+
+PAYLOAD: ensemble de claims (revendication)
+	 eg # -- REGISTRED CLAIMS -- standard: unique pour tout le monde.
+	      sub: username ou userId
+	      iss(issuer): l'application qui a générer le token
+	      aud: le public cible, le token est générer pour quelle type d'apps (web, mobile etc..)
+	      exp: date d'expiration, il n'est pas valable après cette date
+	      nbf: a ne pas utiliser avant cette date
+	      iat: la date de génération de token
+	      jti: l'identifiant de token.
+
+	      -- PRIVATE CLAIMS -- custom
+	      name, roles etc..
+
+	      -- PUBLIC CLAIMS --
+	      email, etc..
+	
+SIGNATURE: comment calculer la signature ? (minutes 56) H+P (hmac secret) => generation de signature.
+
+(H.P.S) = la sculette de JWT.
+
+###########################
+
+Pour completer l'authentification de type STATLESS, il faut crée deux filteres.
+1- JWT Authentication filter: va etre utilisé au moment de l'authentification, Après le saisie de username/pwd => un JWT va être généré.
+
+2- JWT Authorization filter: dès qu'un utilisateur demande une resource, je récupère le JWT, je le vérifier, et apartir de ce token je récupère l'utilisateur et les roles.
+				et après je décide s'il a le droit de faire cette opération ou non.
+
+############################
+
+Problème de renouvelement de token (access-token = timeout très court, 5min eg) with (refresh-token = valable pour une longue durée).. a voir
+
+https://www.baeldung.com/cs/access-refresh-tokens
+
+si le access token n'est plus valide, 1- soit le serveur te demande de faire d'entrer de nouveau le login/pwd
+				      2- soit le serveur te demande de lui envoyer le refresh token pour te servir un nouveau access-token
+				      3- mais si le refresh token est expirer aussi ?????????
+----------------------
+PART 2: Authorization
+----------------------
+Ce filter doit être déployer dans tout les microservices de l'application.
+(les filter dans le framework spring = middelware dans les autres framework, its the same thing)
+@PreAuthorize(), @PostAuthorize() ??? 
+
